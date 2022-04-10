@@ -23,6 +23,7 @@ const e = require('cors')
 const sha256 = require('crypto-js/sha256')
 const { resolveContent } = require('nodemailer/lib/shared')
 const { count } = require('console')
+const { cp } = require('fs')
 const port = process.env.PORT || 8003
 
 app.use(cors())
@@ -117,18 +118,41 @@ data.ref('chat').on('value', async (snapshot) => {
 
   io.emit('totalUnread', totalcount)
 })
-data.ref('products').on('value', (snapshot) => {
+data.ref('products').on('value', async (snapshot) => {
+  const snapshot2 = await data.ref('accounts').once('value')
+  const val = snapshot2.val()
   let products = []
   let u = []
+  let reviews = []
   snapshot.forEach((snap) => {
     let m = []
+    let avgrating = 0
+    let comments = []
+    let count = 0
+    for (let value in snap.val().comments) {
+      avgrating += parseInt(snap.val().comments[value].rating)
+      let obj = snap.val().comments[value]
+      obj.user = val[obj.id].name
+      obj.email = val[obj.id].email
+      comments.push(obj)
+      count++
+    }
     for (let v in snap.val().adv) {
       m.push([v, snap.val().adv[v]])
     }
+    avgrating = parseInt(avgrating / count)
+    reviews.push({
+      id: snap.key,
+      comments,
+      avgrating,
+      link: snap.val().link,
+      title: snap.val().title,
+    })
     u.push([snap.key, m])
     products.push([snap.key, snap.val()])
   })
   io.emit('dates', u)
+  io.emit('reviews', reviews)
   io.emit('products', products)
 })
 data.ref('categories').on('value', (snapshot) => {
@@ -319,72 +343,21 @@ app.post('/api/admin/v1/updateProductwimg', async (req, res) => {
     let imagetodelete = body.imagetodelete
     let title = body.title
     let id = body.id
-
     const delimage = storage.ref('images').child(`${imagetodelete}`)
-    delimage
-      .delete()
-      .then(() => {
-        const uploadTask = storage
-          .ref(`images/${title}/${imagename}`)
-          .put(buffer)
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {},
-          (error) => {
-            console.log(error)
-          },
-          () => {
-            storage
-              .ref(`images/${title}`)
-              .child(imagename)
-              .getDownloadURL()
-              .then((url) => {
-                set['imgname'] = imagename
-                set['link'] = url
-                data
-                  .ref('products')
-                  .child(id)
-                  .update(set)
-                  .then((x) => {
-                    res.send({
-                      ch: true,
-                    })
-                  })
-              })
-          }
-        )
-      })
-      .catch((error) => {
-        const uploadTask = storage
-          .ref(`images/${title}/${imagename}`)
-          .put(buffer)
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {},
-          (error) => {
-            console.log(error)
-          },
-          () => {
-            storage
-              .ref(`images/${title}`)
-              .child(imagename)
-              .getDownloadURL()
-              .then((url) => {
-                set['imgname'] = imagename
-                set['link'] = url
-                data
-                  .ref('products')
-                  .child(id)
-                  .update(set)
-                  .then((x) => {
-                    res.send({
-                      ch: true,
-                    })
-                  })
-              })
-          }
-        )
-      })
+    try {
+      await delimage.delete()
+    } catch {}
+    await storage.ref(`images/${title}/${imagename}`).put(buffer)
+    const url = await storage
+      .ref(`images/${title}`)
+      .child(imagename)
+      .getDownloadURL()
+    set['imgname'] = imagename
+    set['link'] = url
+    await data.ref('products').child(id).update(set)
+    res.send({
+      ch: true,
+    })
   } catch {
     res
       .status(500)
@@ -1331,6 +1304,43 @@ app.post('/api/admin/v1/sendFeedback', async (req, res) => {
 })
 
 /*END OF CONTACT US */
+
+app.get('/api/admin/v1/getReviews', async (req, res) => {
+  try {
+    const snapshot = await data.ref('products').once('value')
+    const snapshot2 = await data.ref('accounts').once('value')
+    let val = snapshot2.val()
+    let reviews = []
+    snapshot.forEach((snap) => {
+      let avgrating = 0
+      let comments = []
+      let count = 0
+      for (let value in snap.val().comments) {
+        avgrating += parseInt(snap.val().comments[value].rating)
+        let obj = snap.val().comments[value]
+
+        obj.user = val[obj.id].name
+        obj.email = val[obj.id].email
+        comments.push(obj)
+        count++
+      }
+      avgrating = parseInt(avgrating / count)
+      reviews.push({
+        id: snap.key,
+        comments,
+        avgrating,
+        link: snap.val().link,
+        title: snap.val().title,
+      })
+    })
+    res.send(reviews)
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
 
 server.listen(port, () => {
   console.log('app listening on port: ', port)
