@@ -19,11 +19,7 @@ const {
   generateCode2,
   sendEmailtoUser,
 } = require('./functions.js')
-const e = require('cors')
 const sha256 = require('crypto-js/sha256')
-const { resolveContent } = require('nodemailer/lib/shared')
-const { count } = require('console')
-const { cp } = require('fs')
 const port = process.env.PORT || 8003
 
 app.use(cors())
@@ -134,6 +130,7 @@ data.ref('products').on('value', async (snapshot) => {
       let obj = snap.val().comments[value]
       obj.user = val[obj.id].name
       obj.email = val[obj.id].email
+      obj.id = val[obj.id].id
       comments.push(obj)
       count++
     }
@@ -358,7 +355,8 @@ app.post('/api/admin/v1/updateProductwimg', async (req, res) => {
     res.send({
       ch: true,
     })
-  } catch {
+  } catch (e) {
+    console.log(e)
     res
       .status(500)
       .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
@@ -1020,8 +1018,9 @@ app.get('/api/admin/v1/getUserChats', async (req, res) => {
             v[x].who,
             v[x].message,
             v[x].date,
-            v[x].who === 'user' ? v[x].readbyu : v[x].readbya,
+            v[x].who === 'admin' ? v[x].readbyu : v[x].readbya,
           ]
+          console.log(object)
         } else {
           object.newm = [null, null, null]
         }
@@ -1318,9 +1317,9 @@ app.get('/api/admin/v1/getReviews', async (req, res) => {
       for (let value in snap.val().comments) {
         avgrating += parseInt(snap.val().comments[value].rating)
         let obj = snap.val().comments[value]
-
         obj.user = val[obj.id].name
         obj.email = val[obj.id].email
+        obj.id = val[obj.id].id
         comments.push(obj)
         count++
       }
@@ -1335,13 +1334,86 @@ app.get('/api/admin/v1/getReviews', async (req, res) => {
     })
     res.send(reviews)
   } catch (e) {
-    console.log(e)
     res
       .status(500)
       .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
   }
 })
 
+/*END OF REVIEW*/
+
+app.get('/api/admin/v1/getAllAccounts', async (req, res) => {
+  try {
+    const snapshot = await data.ref('accounts').once('value')
+    let dat = []
+    snapshot.forEach((snap) => {
+      dat.push([snap.key, snap.val()])
+    })
+    res.send(dat)
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/getCart', async (req, res) => {
+  try {
+    const snapshot = await data.ref('cart').child(req.query.id).once('value')
+    let cart = []
+    snapshot.forEach((snap) => {
+      cart.push([snap.key, snap.val()])
+    })
+    res.send(cart)
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+//PAYMENT
+app.get('/api/admin/v1/getPayment', async (req, res) => {
+  const snapshot = await data.ref('bank').once('value')
+  const snapshot2 = await data.ref('gcash').once('value')
+
+  res.send([snapshot.val(), snapshot2.val()])
+})
+
+app.patch('/api/admin/v1/updateQRdata', async (req, res) => {
+  try {
+    const datas = req.body
+    await data.ref(datas.what).update(datas.updates)
+    res.send({ success: true })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.patch('/api/admin/v1/updateQRCode', async (req, res) => {
+  try {
+    const datav = req.files
+    const body = req.body
+    let buffer = datav['image'].data
+    let imagename = body.imagename
+    let what = body.what
+    const delimage = storage.ref('images').child(`${imagetodelete}`)
+    try {
+      await delimage.delete()
+    } catch {}
+    await storage.ref(`images/${what}/${imagename}`).put(buffer)
+    const url = await storage
+      .ref(`images/${what}`)
+      .child(imagename)
+      .getDownloadURL()
+    await data.ref(what).update({ url: url })
+    res.send({
+      ch: true,
+    })
+  } catch {}
+})
 server.listen(port, () => {
   console.log('app listening on port: ', port)
 })
