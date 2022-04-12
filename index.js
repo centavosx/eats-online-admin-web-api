@@ -1400,13 +1400,19 @@ app.patch('/api/admin/v1/updateQRCode', async (req, res) => {
     let buffer = datav['image'].data
     let imagename = body.imagename
     let what = body.what
-    const delimage = storage.ref('images').child(`${imagetodelete}`)
+    const delimage = storage.ref('qrcodes').child(what)
     try {
-      await delimage.delete()
+      const dir = await delimage.listAll()
+      dir.items.forEach(async (fileRef) => {
+        const dirRef = storage.ref(fileRef.fullPath)
+        const url = await dirRef.getDownloadURL()
+        const imgRef = storage.refFromURL(url)
+        await imgRef.delete()
+      })
     } catch {}
-    await storage.ref(`images/${what}/${imagename}`).put(buffer)
+    await storage.ref(`qrcodes/${what}/${imagename}`).put(buffer)
     const url = await storage
-      .ref(`images/${what}`)
+      .ref(`qrcodes/${what}`)
       .child(imagename)
       .getDownloadURL()
     await data.ref(what).update({ url: url })
