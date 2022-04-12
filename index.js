@@ -210,7 +210,7 @@ app.use(function (err, req, res, next) {
 app.delete('/api/admin/v1/deleteprod', async (req, res) => {
   try {
     const id = req.query.id
-    console.log(id)
+
     const ref = storage.ref(`images/${id}`)
     const dir = await ref.listAll()
     if (dir.items.length === 0) {
@@ -250,9 +250,9 @@ app.post('/api/admin/v1/login', async (req, res) => {
     let datas = req.body
     let user = decrypt(datas.user)
     let pass = sha256(decrypt(datas.pass)).toString()
-    console.log(user)
+
     let request = await data.ref('admin').once('value')
-    console.log(request.val())
+
     if (request.val().user === user && request.val().pass === pass) {
       res.send(
         encryptJSON({
@@ -277,7 +277,7 @@ app.post('/api/admin/v1/login', async (req, res) => {
 app.post('/api/admin/v1/updateProduct', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
-    console.log(req.body)
+
     let set = req.body.data
     let id = req.body.id
     data
@@ -369,8 +369,7 @@ app.post('/api/admin/v1/add-products', async (req, res) => {
     const body = req.body
 
     let set = JSON.parse(body.set)
-    console.log(set)
-    console.log('Dwadw')
+
     const image = datav['image'].data
     data
       .ref('products')
@@ -439,7 +438,7 @@ app.post('/api/admin/v1/add-products', async (req, res) => {
 app.post('/api/admin/v1/addsupplierorcategory', (req, res) => {
   try {
     let datas = req.body
-    console.log(datas)
+
     const wh = datas.wh
     let d = datas.d
     data
@@ -458,7 +457,7 @@ app.post('/api/admin/v1/addsupplierorcategory', (req, res) => {
                 } else {
                   d['id'] = 1000
                 }
-                console.log(d)
+
                 data
                   .ref(wh)
                   .push(d)
@@ -645,7 +644,10 @@ app.put('/api/admin/v1/updateaccounthistory', async (req, res) => {
         } else {
           if (set.status === 'Cancelled') {
             set.items.forEach(async (d) => {
-              let snapshot = await data.ref('products').child(d[1].key)
+              let snapshot = await data
+                .ref('products')
+                .child(d[1].key)
+                .once('value')
               if (snapshot.val() !== null) {
                 await data
                   .ref('products')
@@ -1020,7 +1022,6 @@ app.get('/api/admin/v1/getUserChats', async (req, res) => {
             v[x].date,
             v[x].who === 'admin' ? v[x].readbyu : v[x].readbya,
           ]
-          console.log(object)
         } else {
           object.newm = [null, null, null]
         }
