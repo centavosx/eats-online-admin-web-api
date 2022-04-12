@@ -1373,7 +1373,27 @@ app.get('/api/admin/v1/getCart', async (req, res) => {
   }
 })
 
-//PAYMENT
+app.delete('/api/admin/v1/deleteUser', async (req, res) => {
+  try {
+    const id = req.query.id.replaceAll(' ', '+')
+    await data.ref('accounts').child(id).update({
+      name: 'DELETED USER',
+      email: 'DELETED USER',
+      phoneNumber: 'DELETED USER',
+      password: 'DELETED USER',
+      verified: 'DELETED USER',
+      totalspent: 0,
+      guest: 'DELETED USER',
+    })
+    res.send({ ch: true })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+//END OF ACCOUNTS
 app.get('/api/admin/v1/getPayment', async (req, res) => {
   const snapshot = await data.ref('bank').once('value')
   const snapshot2 = await data.ref('gcash').once('value')
