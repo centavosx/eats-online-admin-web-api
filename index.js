@@ -8,18 +8,19 @@ const server = require('http').createServer(app)
 const io = require('socket.io')(server)
 const bodyParser = require('body-parser')
 const {
-  encrypt,
+  getMonthsInYear,
+  getWeeksinMonths,
   encryptJSON,
   decryptJSON,
   decrypt,
   generateCode,
   checkLastKey,
   email,
-  sendProfileData,
   generateCode2,
   sendEmailtoUser,
 } = require('./functions.js')
 const sha256 = require('crypto-js/sha256')
+
 const port = process.env.PORT || 8003
 
 app.use(cors())
@@ -53,7 +54,39 @@ app.use(function (req, res, next) {
 //socketssss
 
 const chat = {}
-
+data.ref('accounts').on('value', (snapshot) => {
+  let x = []
+  let count = 0
+  let registered = 0
+  snapshot.forEach((d) => {
+    if (d.val().verified) {
+      registered++
+    }
+    if (
+      d.val().name !== 'DELETED USER' &&
+      d.val().email !== 'DELETED USER' &&
+      d.val().password !== 'DELETED USER' &&
+      d.val().phoneNumber !== 'DELETED USER' &&
+      d.val().verified !== 'DELETED USER'
+    ) {
+      x.push(d.val())
+    } else {
+      count++
+    }
+  })
+  x.sort((a, b) => b.totalspent - a.totalspent)
+  io.emit('registered', registered)
+  io.emit('topbuyers', x)
+})
+data.ref('contactus').on('value', (snapshot) => {
+  io.emit('feedbacknumber', snapshot.numChildren())
+})
+data.ref('reservation').on('value', (snapshot) => {
+  io.emit('numberofadvance', snapshot.numChildren())
+})
+data.ref('transaction').on('value', (snapshot) => {
+  io.emit('numberoftransaction', snapshot.numChildren())
+})
 data.ref('chat').on('value', async (snapshot) => {
   let snapshot2 = await data.ref('accounts').once('value')
   let o = []
@@ -119,8 +152,12 @@ data.ref('products').on('value', async (snapshot) => {
   const val = snapshot2.val()
   let products = []
   let u = []
+  let x = []
   let reviews = []
   snapshot.forEach((snap) => {
+    if (snap.val().numberofitems <= snap.val().critical) {
+      x.push(snap.val())
+    }
     let m = []
     let avgrating = 0
     let comments = []
@@ -129,11 +166,13 @@ data.ref('products').on('value', async (snapshot) => {
       avgrating += parseInt(snap.val().comments[value].rating)
       let obj = snap.val().comments[value]
       obj.user = val[obj.id].name
+
       obj.email = val[obj.id].email
       obj.id = val[obj.id].id
       comments.push(obj)
       count++
     }
+
     for (let v in snap.val().adv) {
       m.push([v, snap.val().adv[v]])
     }
@@ -148,12 +187,15 @@ data.ref('products').on('value', async (snapshot) => {
     u.push([snap.key, m])
     products.push([snap.key, snap.val()])
   })
+  io.emit('criticalproducts', x)
   io.emit('dates', u)
   io.emit('reviews', reviews)
   io.emit('products', products)
+  products.sort((a, b) => a[1].totalsold - b[1].totalsold)
+  products.reverse()
+  io.emit('productssortsold', products)
 })
 data.ref('categories').on('value', (snapshot) => {
-  console.log('hello')
   let categories = []
   snapshot.forEach((snap) => {
     categories.push([snap.key, snap.val()])
@@ -248,11 +290,10 @@ app.post('/api/admin/v1/login', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
+
     let user = decrypt(datas.user)
     let pass = sha256(decrypt(datas.pass)).toString()
-
     let request = await data.ref('admin').once('value')
-
     if (request.val().user === user && request.val().pass === pass) {
       res.send(
         encryptJSON({
@@ -277,7 +318,6 @@ app.post('/api/admin/v1/login', async (req, res) => {
 app.post('/api/admin/v1/updateProduct', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
-
     let set = req.body.data
     let id = req.body.id
     data
@@ -321,6 +361,7 @@ app.get('/api/admin/v1/getwhat', (req, res) => {
       snapshot.forEach((snap) => {
         products.push([snap.key, snap.val()])
       })
+
       res.send({
         data: products,
       })
@@ -371,6 +412,7 @@ app.post('/api/admin/v1/add-products', async (req, res) => {
     let set = JSON.parse(body.set)
 
     const image = datav['image'].data
+    console.log(set, image)
     data
       .ref('products')
       .orderByChild('title')
@@ -1439,8 +1481,330 @@ app.patch('/api/admin/v1/updateQRCode', async (req, res) => {
     res.send({
       ch: true,
     })
-  } catch {}
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
 })
+
+//END OF QR CODE
+
+app.get('/api/admin/v1/getCriticalProducts', async (req, res) => {
+  try {
+    const snapshot = await data
+      .ref('products')
+      .orderByChild('numberofitems')
+      .once('value')
+    let x = []
+    snapshot.forEach((snap) => {
+      if (snap.val().numberofitems <= snap.val().critical) {
+        x.push(snap.val())
+      }
+    })
+    res.send(x)
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+//END OF CRITICAL
+app.get('/api/admin/v1/numberoftransactions', async (req, res) => {
+  try {
+    const snapshot = await data.ref('transaction').once('value')
+    res.send({ num: snapshot.numChildren() })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/numberofadvance', async (req, res) => {
+  try {
+    const snapshot2 = await data.ref('reservation').once('value')
+    res.send({ num: snapshot2.numChildren() })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/getAllprods', async (req, res) => {
+  try {
+    const snapshot = await data.ref('products').once('value')
+    let x = []
+    snapshot.forEach((snap) => {
+      x.push([snap.key, snap.val()])
+    })
+    x.sort((a, b) => a[1].totalsold - b[1].totalsold)
+    x.reverse()
+    res.send(x)
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/getTopBuyer', async (req, res) => {
+  try {
+    const snapshot = await data
+      .ref('accounts')
+      .orderByChild('totalspent')
+      .once('value')
+    let x = []
+    let count = 0
+    snapshot.forEach((d) => {
+      if (
+        d.val().name !== 'DELETED USER' &&
+        d.val().email !== 'DELETED USER' &&
+        d.val().password !== 'DELETED USER' &&
+        d.val().phoneNumber !== 'DELETED USER' &&
+        d.val().verified !== 'DELETED USER'
+      ) {
+        x.push(d.val())
+      } else {
+        count++
+      }
+    })
+    x.sort((a, b) => b.totalspent - a.totalspent)
+    res.send(x)
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+app.get('/api/admin/v1/countRegistered', async (req, res) => {
+  try {
+    const snapshot = await data
+      .ref('accounts')
+      .orderByChild('verified')
+      .equalTo(true)
+      .once('value')
+    res.send({ num: snapshot.numChildren() })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+app.get('/api/admin/v1/feedbacknumber', async (req, res) => {
+  try {
+    const snapshot = await data.ref('contactus').once('value')
+    res.send({ num: snapshot.numChildren() })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
+  try {
+    let date = null
+    let copyDate = null
+    if (req.query.what == 'TODAY') {
+      date = new Date()
+      copyDate = new Date(date)
+    } else {
+      date = new Date(req.query.date)
+    }
+
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1)
+    date.setDate(diff)
+    date.setHours(0)
+    date.setMinutes(0)
+    date.setSeconds(0)
+    if (!(req.query.what == 'TODAY')) {
+      copyDate = new Date(date.toString())
+      copyDate.setDate(copyDate.getDate() + 6)
+    }
+    copyDate.setHours(23)
+    copyDate.setMinutes(59)
+    copyDate.setSeconds(59)
+    const firstDay = date
+    const dateToday = copyDate
+    const snapshot = await data
+      .ref('transaction')
+      .orderByChild('status')
+      .equalTo('Completed')
+      .once('value')
+
+    const obj = {
+      M: { index: 0, data: [] },
+      T: { index: 1, data: [] },
+      W: { index: 2, data: [] },
+      TH: { index: 3, data: [] },
+      F: { index: 4, data: [] },
+      SA: { index: 5, data: [] },
+      S: { index: 6, data: [] },
+    }
+    snapshot.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
+          if (dateTransaction.getDay() === 0) {
+            obj.S.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 1) {
+            obj.M.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 2) {
+            obj.T.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 3) {
+            obj.W.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 4) {
+            obj.TH.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 5) {
+            obj.F.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 6) {
+            obj.SA.data.push(snap.val().totalprice)
+          }
+        }
+      }
+    })
+    let arr = { data: {}, overall: 0 }
+    let highest = 0
+    for (let x in obj) {
+      let total = 0
+      for (let value of obj[x].data) total += value
+      if (total > highest) highest = total
+      arr.data[obj[x].index] = { day: x, total: total }
+      arr.overall += total
+    }
+    for (let x in arr.data) {
+      arr.data[x].percentage = (arr.data[x].total / highest) * 100
+    }
+
+    res.send(arr)
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
+  try {
+    const month = Number(req.query.month)
+    const year = Number(req.query.year)
+    let date = new Date()
+    date.setMonth(month)
+    date.setFullYear(year)
+    date.setDate(1)
+    const obj = getWeeksinMonths(date.toString())
+    const snapshot = await data
+      .ref('transaction')
+      .orderByChild('status')
+      .equalTo('Completed')
+      .once('value')
+
+    snapshot.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        for (let value in obj) {
+          if (
+            obj[value].monday <= dateTransaction &&
+            dateTransaction <= obj[value].sunday
+          ) {
+            obj[value].data.push(snap.val().totalprice)
+            break
+          }
+        }
+      }
+    })
+
+    let arr = { data: {}, overall: 0 }
+    let highest = 0
+    for (let x in obj) {
+      let total = 0
+      for (let value of obj[x].data) total += value
+      if (total > highest) highest = total
+      arr.data[x] = { day: 'Week ' + (Number(x) + 1), total: total }
+      arr.overall += total
+    }
+    for (let x in arr.data) {
+      arr.data[x].percentage = (arr.data[x].total / highest) * 100
+    }
+    res.send(arr)
+  } catch (e) {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
+  try {
+    const month = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ]
+    const year = Number(req.query.year)
+    console.log(year)
+    let obj = getMonthsInYear(year)
+    const snapshot = await data
+      .ref('transaction')
+      .orderByChild('status')
+      .equalTo('Completed')
+      .once('value')
+
+    snapshot.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        for (let value in obj) {
+          if (
+            obj[value].first <= dateTransaction &&
+            dateTransaction <= obj[value].last
+          ) {
+            obj[value].data.push(snap.val().totalprice)
+            break
+          }
+        }
+      }
+    })
+    let arr = { data: {}, overall: 0 }
+    let highest = 0
+    for (let x in obj) {
+      let total = 0
+      for (let value of obj[x].data) total += value
+      if (total > highest) highest = total
+      arr.data[x] = { day: month[Number(x)], total: total }
+      arr.overall += total
+    }
+    for (let x in arr.data) {
+      arr.data[x].percentage = (arr.data[x].total / highest) * 100
+    }
+    res.send(arr)
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
 server.listen(port, () => {
   console.log('app listening on port: ', port)
 })
