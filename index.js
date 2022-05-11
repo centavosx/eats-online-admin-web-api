@@ -866,6 +866,18 @@ app.put('/api/admin/v1/updatetransactstatus', async (req, res) => {
 })
 
 /*END OF ORDERSSSS */
+app.put('/api/admin/v1/setpstatus', async (req, res) => {
+  try {
+    const datas = req.body
+    await data
+      .ref(datas.what)
+      .child(datas.id)
+      .update({ pstatus: datas.paid ? 'Paid' : 'Not Paid' })
+    res.send(true)
+  } catch (e) {
+    res.status(500).send({ message: 'error' })
+  }
+})
 
 app.put('/api/admin/v1/updateaccountadv', async (req, res) => {
   try {
