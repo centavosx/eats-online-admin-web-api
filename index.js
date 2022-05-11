@@ -1330,7 +1330,7 @@ app.post('/api/admin/v1/sendFeedback', async (req, res) => {
       datas.answer,
       datas.name,
       datas.email,
-      datas.subj
+      datas.subject
     )
 
     if (check) {
