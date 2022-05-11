@@ -1334,7 +1334,12 @@ app.post('/api/admin/v1/sendFeedback', async (req, res) => {
     )
 
     if (check) {
-      data.ref('contactus').child(datas.key).update({ reply: datas.answer })
+      data
+        .ref('contactus')
+        .child(datas.key)
+        .update({
+          reply: { date: new Date().toString(), answer: datas.answer },
+        })
     }
     res.send({ send: check })
   } catch {
