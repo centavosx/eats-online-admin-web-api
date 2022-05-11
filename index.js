@@ -1019,12 +1019,7 @@ app.patch('/api/admin/v1/updateAdvanceItem', async (req, res) => {
           })
       }
     }
-    let result = await data
-      .ref('reservation')
-      .child(id)
-      .child('items')
-      .once('value')
-    res.send(result.val())
+    res.send(true)
   } catch {
     res
       .status(500)
