@@ -654,16 +654,13 @@ app.delete('/api/admin/v1/deleteAllDate', (req, res) => {
 app.post('/api/admin/v1/gettransact', async (req, res) => {
   try {
     let datas = req.body
-    data
-      .ref(datas.what)
-      .limitToLast(datas.n)
-      .once('value', (snapshot) => {
-        let history = []
-        snapshot.forEach((snap) => {
-          history.push([snap.key, snap.val()])
-        })
-        res.send(history)
+    data.ref(datas.what).once('value', (snapshot) => {
+      let history = []
+      snapshot.forEach((snap) => {
+        history.push([snap.key, snap.val()])
       })
+      res.send(history)
+    })
   } catch {
     res
       .status(500)
