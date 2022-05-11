@@ -182,12 +182,15 @@ const encryptJSON = (text) => {
 const getWeeksinMonths = (date) => {
   const firstWeek = new Date(date)
   const endDayOfWeek = new Date(date)
+
   const dates = {}
   let index = 0
   while (new Date(date).getMonth() === firstWeek.getMonth()) {
     endDayOfWeek.setDate(firstWeek.getDate() + (7 - firstWeek.getDay() - 1))
-    if (endDayOfWeek.getMonth() > new Date(date).getMonth())
-      endDayOfWeek.setHours(23)
+    if (endDayOfWeek.getMonth() > new Date(date).getMonth()) {
+      endDayOfWeek.setDate(0)
+    }
+    endDayOfWeek.setHours(23)
     endDayOfWeek.setMinutes(59)
     endDayOfWeek.setSeconds(59)
     dates[index] = {
@@ -197,8 +200,8 @@ const getWeeksinMonths = (date) => {
     }
     firstWeek.setDate(endDayOfWeek.getDate() + 1)
     firstWeek.setHours(0)
-    firstWeek.setMinutes(1)
-    firstWeek.setSeconds(1)
+    firstWeek.setMinutes(0)
+    firstWeek.setSeconds(0)
     index++
   }
   return dates
