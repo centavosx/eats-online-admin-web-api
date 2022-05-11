@@ -213,24 +213,24 @@ io.on('connection', (client) => {
   client.on('chat', (userid) => {
     if (!chat[client.id]) {
       chat[client.id] = userid
-      // data
-      //   .ref('chat')
-      //   .child(userid)
-      //   .limitToLast(1)
-      //   .on('child_added', (snapshot) => {
-      //     io.emit(`newchat/${chat[client.id]}`, [snapshot.key, snapshot.val()])
-      //   })
-
       data
         .ref('chat')
         .child(userid)
-        .on('value', (snapshot) => {
-          let send = []
-          snapshot.forEach((val) => {
-            send.push([val.key, val.val()])
-          })
-          io.emit(`chatchanged/${chat[client.id]}`, send)
+        .limitToLast(1)
+        .on('child_added', (snapshot) => {
+          io.emit(`newchat/${chat[client.id]}`, [snapshot.key, snapshot.val()])
         })
+
+      // data
+      //   .ref('chat')
+      //   .child(userid)
+      //   .on('value', (snapshot) => {
+      //     let send = []
+      //     snapshot.forEach((val) => {
+      //       send.push([val.key, val.val()])
+      //     })
+      //     io.emit(`chatchanged/${chat[client.id]}`, send)
+      //   })
     }
   })
 
