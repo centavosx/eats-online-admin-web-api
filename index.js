@@ -1683,10 +1683,7 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
 
     res.send(arr)
   } catch (e) {
-    console.log(e)
-    res
-      .status(500)
-      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+    res.status(500).send({ message: e.toString() })
   }
 })
 
@@ -1734,9 +1731,7 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
     }
     res.send(arr)
   } catch (e) {
-    res
-      .status(500)
-      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+    res.status(500).send({ message: e.toString() })
   }
 })
 
@@ -1793,10 +1788,7 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
     }
     res.send(arr)
   } catch (e) {
-    console.log(e)
-    res
-      .status(500)
-      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+    res.status(500).send({ message: e.toString() })
   }
 })
 
