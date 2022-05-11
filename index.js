@@ -84,6 +84,7 @@ data.ref('contactus').on('value', (snapshot) => {
   snapshot.forEach((data) => {
     x.push([data.key, data.val()])
   })
+  x.reverse()
   io.emit('feedbacks', x)
 })
 data.ref('reservation').on('value', (snapshot) => {
