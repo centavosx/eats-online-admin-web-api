@@ -869,10 +869,7 @@ app.put('/api/admin/v1/updatetransactstatus', async (req, res) => {
 app.put('/api/admin/v1/setpstatus', async (req, res) => {
   try {
     const datas = req.body
-    await data
-      .ref(datas.what)
-      .child(datas.id)
-      .update({ pstatus: datas.paid ? 'Paid' : 'Not Paid' })
+    await data.ref(datas.what).child(datas.id).update({ pstatus: datas.paid })
     res.send(true)
   } catch (e) {
     res.status(500).send({ message: 'error' })
