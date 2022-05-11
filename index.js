@@ -549,17 +549,13 @@ app.delete('/api/admin/v1/removebyid', (req, res) => {
   }
 })
 
-app.put('/api/admin/v1/updatedate', (req, res) => {
+app.put('/api/admin/v1/updatedate', async (req, res) => {
   try {
     let datas = req.body
-    data
-      .ref('products')
-      .child(datas.id)
-      .child('adv')
-      .push(datas.da)
-      .then(() => {
-        res.send(true)
-      })
+    datas.dates.forEach(async (d) => {
+      await data.ref('products').child(datas.id).child('adv').push(d)
+    })
+    res.send(true)
   } catch {
     res
       .status(500)
@@ -624,7 +620,6 @@ app.delete('/api/admin/v1/deletedate', (req, res) => {
         res.send(true)
       })
   } catch (e) {
-    console.log(e)
     res
       .status(500)
       .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
