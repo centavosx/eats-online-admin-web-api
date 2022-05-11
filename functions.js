@@ -4,6 +4,7 @@ const { google } = require('googleapis')
 const OAuth2 = google.auth.OAuth2
 const CryptoJS = require('crypto-js')
 const e = require('cors')
+const { first } = require('lodash')
 
 const oauth2Client = new OAuth2(
   '184126786610-srtof6p7p1o89skesva310r1kv76thgf.apps.googleusercontent.com',
@@ -178,7 +179,32 @@ const encryptJSON = (text) => {
     data: CryptoJS.AES.encrypt(JSON.stringify(text), passphrase).toString(),
   }
 }
+const getWeeksinMonths = (date) => {
+  const firstWeek = new Date(date)
+  const endDayOfWeek = new Date(date)
+  const dates = {}
+  let index = 0
+  while (new Date(date).getMonth() === firstWeek.getMonth()) {
+    endDayOfWeek.setDate(firstWeek.getDate() + (7 - firstWeek.getDay() - 1))
+    if (endDayOfWeek.getMonth() > new Date(date).getMonth())
+      endDayOfWeek.setHours(23)
+    endDayOfWeek.setMinutes(59)
+    endDayOfWeek.setSeconds(59)
+    dates[index] = {
+      monday: new Date(firstWeek.toString()),
+      sunday: new Date(endDayOfWeek.toString()),
+      data: [],
+    }
+    firstWeek.setDate(endDayOfWeek.getDate() + 1)
+    firstWeek.setHours(0)
+    firstWeek.setMinutes(1)
+    firstWeek.setSeconds(1)
+    index++
+  }
+  return dates
+}
 module.exports = {
+  getWeeksinMonths,
   generateCode,
   generateCode2,
   checkLastKey,

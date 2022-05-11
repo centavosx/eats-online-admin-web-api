@@ -1695,6 +1695,9 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
     date.setMonth(month)
     date.setFullYear(year)
     date.setDate(1)
+    date.setHours(0)
+    date.setMinutes(1)
+    date.setSeconds(1)
     const obj = getWeeksinMonths(date.toString())
     const snapshot = await data
       .ref('transaction')
