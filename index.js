@@ -80,6 +80,11 @@ data.ref('accounts').on('value', (snapshot) => {
 })
 data.ref('contactus').on('value', (snapshot) => {
   io.emit('feedbacknumber', snapshot.numChildren())
+  let x = []
+  snapshot.forEach((data) => {
+    x.push([data.key, data.val()])
+  })
+  io.emit('feedbacks', x)
 })
 data.ref('reservation').on('value', (snapshot) => {
   io.emit('numberofadvance', snapshot.numChildren())
@@ -1302,8 +1307,7 @@ app.post('/api/admin/v1/generateExcel', async (req, res) => {
 
 app.get('/api/admin/v1/getFeedBacks', async (req, res) => {
   try {
-    let num = parseInt(req.query.num)
-    let snapshot = await data.ref('contactus').limitToLast(num).once('value')
+    let snapshot = await data.ref('contactus').once('value')
     let x = []
     snapshot.forEach((d) => {
       x.push([d.key, d.val()])
