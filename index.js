@@ -1755,7 +1755,6 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
       'DEC',
     ]
     const year = Number(req.query.year)
-    console.log(year)
     let obj = getMonthsInYear(year)
     const snapshot = await data
       .ref('transaction')

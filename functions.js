@@ -206,8 +206,41 @@ const getWeeksinMonths = (date) => {
   }
   return dates
 }
+const getMonthsInYear = (year) => {
+  const copy = new Date()
+  const firstDay = new Date()
+  firstDay.setMonth(0)
+  firstDay.setDate(1)
+  firstDay.setFullYear(year)
+  firstDay.setHours(0)
+  firstDay.setMinutes(0)
+  firstDay.setSeconds(0)
+  const endDay = new Date(endDay.toString())
+  const dates = {}
+  let index = 0
+  while (copy.getFullYear() === firstDay.getFullYear()) {
+    endDay.setMonth(firstDay.getMonth() + 1)
+    endDay.setDate(0)
+    endDay.setHours(23)
+    endDay.setMinutes(59)
+    endDay.setSeconds(59)
+    dates[index] = {
+      first: new Date(firstDay.toString()),
+      last: new Date(endDay.toString()),
+      data: [],
+    }
+    firstDay.setMonth(firstDay.getMonth() + 1)
+    firstDay.setMonth(1)
+    firstDay.setHours(0)
+    firstDay.setMinutes(0)
+    firstDay.setSeconds(0)
+    index++
+  }
+  return dates
+}
 module.exports = {
   getWeeksinMonths,
+  getMonthsInYear,
   generateCode,
   generateCode2,
   checkLastKey,
