@@ -215,7 +215,7 @@ const getMonthsInYear = (year) => {
   firstDay.setHours(0)
   firstDay.setMinutes(0)
   firstDay.setSeconds(0)
-  const endDay = new Date(endDay.toString())
+  const endDay = new Date(firstDay.toString())
   const dates = {}
   let index = 0
   while (copy.getFullYear() === firstDay.getFullYear()) {
