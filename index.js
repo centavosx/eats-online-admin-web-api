@@ -89,9 +89,21 @@ data.ref('contactus').on('value', (snapshot) => {
 })
 data.ref('reservation').on('value', (snapshot) => {
   io.emit('numberofadvance', snapshot.numChildren())
+  let history = []
+  snapshot.forEach((snap) => {
+    history.push([snap.key, snap.val()])
+  })
+  history.reverse()
+  io.emit('reservation', history)
 })
 data.ref('transaction').on('value', (snapshot) => {
   io.emit('numberoftransaction', snapshot.numChildren())
+  let history = []
+  snapshot.forEach((snap) => {
+    history.push([snap.key, snap.val()])
+  })
+  history.reverse()
+  io.emit('transaction', history)
 })
 data.ref('chat').on('value', async (snapshot) => {
   let snapshot2 = await data.ref('accounts').once('value')
@@ -659,6 +671,7 @@ app.post('/api/admin/v1/gettransact', async (req, res) => {
       snapshot.forEach((snap) => {
         history.push([snap.key, snap.val()])
       })
+      history.reverse()
       res.send(history)
     })
   } catch {
