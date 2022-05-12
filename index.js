@@ -1497,6 +1497,7 @@ app.patch('/api/admin/v1/updateQRCode', async (req, res) => {
     let buffer = datav['image'].data
     let imagename = body.imagename
     let what = body.what
+    let set = JSON.parse(body.set)
     const delimage = storage.ref('qrcodes').child(what)
     try {
       const dir = await delimage.listAll()
@@ -1512,7 +1513,8 @@ app.patch('/api/admin/v1/updateQRCode', async (req, res) => {
       .ref(`qrcodes/${what}`)
       .child(imagename)
       .getDownloadURL()
-    await data.ref(what).update({ url: url })
+    set.url = url
+    await data.ref(what).update(set)
     res.send({
       ch: true,
     })
