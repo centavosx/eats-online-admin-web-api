@@ -217,6 +217,12 @@ data.ref('products').on('value', async (snapshot) => {
   products.reverse()
   io.emit('productssortsold', products)
 })
+data.ref('bank').on('value', (snapshot) => {
+  io.emit('bank', snapshot.val())
+})
+data.ref('gcash').on('value', (snapshot) => {
+  io.emit('gcash', snapshot.val())
+})
 data.ref('categories').on('value', (snapshot) => {
   let categories = []
   snapshot.forEach((snap) => {
