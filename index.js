@@ -56,6 +56,7 @@ app.use(function (req, res, next) {
 const chat = {}
 data.ref('accounts').on('value', (snapshot) => {
   let x = []
+  let allUser = []
   let count = 0
   let registered = 0
   snapshot.forEach((d) => {
@@ -73,8 +74,11 @@ data.ref('accounts').on('value', (snapshot) => {
     } else {
       count++
     }
+    allUser.push([d.key, d.val()])
   })
+  allUser.reverse()
   x.sort((a, b) => b.totalspent - a.totalspent)
+  io.emit('users', allUser)
   io.emit('registered', registered)
   io.emit('topbuyers', x)
 })
@@ -1421,6 +1425,7 @@ app.get('/api/admin/v1/getAllAccounts', async (req, res) => {
     snapshot.forEach((snap) => {
       dat.push([snap.key, snap.val()])
     })
+    dat.reverse()
     res.send(dat)
   } catch {
     res
@@ -1436,6 +1441,7 @@ app.get('/api/admin/v1/getCart', async (req, res) => {
     snapshot.forEach((snap) => {
       cart.push([snap.key, snap.val()])
     })
+    cart.reverse()
     res.send(cart)
   } catch {
     res
