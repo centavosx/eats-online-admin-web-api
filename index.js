@@ -1927,9 +1927,15 @@ app.get('/api/admin/v1/getFastMovingProducts', async (req, res) => {
       .once('value')
     const reservationSnap = await data.ref('reservation').once('value')
     const firstDay = what === 'custom' && !auto ? new Date(date) : new Date()
+    if (what === 'week' && auto)
+      firstDay.setDate(
+        firstDay.getDate() -
+          firstDay.getDay() +
+          (firstDay.getDay() === 0 ? -6 : 1)
+      )
     if (what === 'month' && !auto) firstDay.setMonth(Number(date))
     if (what === 'year') firstDay.setMonth(0)
-    if (what !== 'custom') firstDay.setDate(1)
+    if (what !== 'custom' && what !== 'week') firstDay.setDate(1)
     if (what === 'year' && !auto) firstDay.setFullYear(date)
     if (what === 'month' && !auto) firstDay.setFullYear(date2)
     firstDay.setHours(0)
@@ -1937,6 +1943,7 @@ app.get('/api/admin/v1/getFastMovingProducts', async (req, res) => {
     firstDay.setSeconds(0)
 
     const lastDay = what === 'custom' && !auto ? new Date(date2) : new Date()
+    if (what === 'week' && auto) lastDay.setDate(firstDay.getDate() + 6)
     if (what === 'month') lastDay.setMonth(firstDay.getMonth() + 1)
     if (what === 'year') lastDay.setFullYear(firstDay.getFullYear() + 1)
     if (what === 'year') lastDay.setMonth(0)
