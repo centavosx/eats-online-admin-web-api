@@ -1912,11 +1912,89 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
   }
 })
 
-// app.get('/api/admin/v1/ordersForTheMonth', async (req, res) => {
-//   const prodSnap = await data.ref('products').once('value')
-//   const transactSnap = await data.ref('transaction').once('value')
-//   const reservationSnap = await data.ref('reservation').once('value')
-// })
+app.get('/api/admin/v1/getFastMovingProducts', async (req, res) => {
+  try {
+    const auto = req.query.auto === true || req.query.auto === 'true'
+    const what = req.query.what
+    const date = req.query.value
+    const date2 = req.query.value2
+
+    const prodSnap = await data.ref('products').once('value')
+    const transactSnap = await data
+      .ref('transaction')
+      .orderByChild('status')
+      .equalTo('Completed')
+      .once('value')
+    const reservationSnap = await data.ref('reservation').once('value')
+    const firstDay = what === 'custom' && !auto ? new Date(date) : new Date()
+    if (what === 'month' && !auto) firstDay.setMonth(Number(date))
+    if (what === 'year') firstDay.setMonth(0)
+    if (what !== 'custom') firstDay.setDate(1)
+    if (what === 'year' && !auto) firstDay.setFullYear(date)
+    if (what === 'month' && !auto) firstDay.setFullYear(date2)
+    firstDay.setHours(0)
+    firstDay.setMinutes(0)
+    firstDay.setSeconds(0)
+
+    const lastDay = what === 'custom' && !auto ? new Date(date2) : new Date()
+    if (what === 'month') lastDay.setMonth(firstDay.getMonth() + 1)
+    if (what === 'year') lastDay.setFullYear(firstDay.getFullYear() + 1)
+    if (what === 'year') lastDay.setMonth(0)
+    if (what === 'month' || what === 'year') lastDay.setDate(0)
+    lastDay.setHours(23)
+    lastDay.setMinutes(59)
+    lastDay.setSeconds(59)
+
+    let products = {}
+    transactSnap.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const date = new Date(snap.val().dateDelivered)
+        if (snap.val().items && date >= firstDay && date <= lastDay)
+          snap.val().items.forEach((x) => {
+            if (x[1].key in prodSnap.val()) {
+              if (!(x[1].key in products))
+                products[x[1].key] = {
+                  amount: 0,
+                }
+              products[x[1].key].amount += x[1].amount
+            }
+          })
+      }
+    })
+    reservationSnap.forEach((snap) => {
+      if (snap.val().items)
+        snap.val().items.forEach((x) => {
+          if (x[1].status === 'Completed' && x[1].key in prodSnap.val()) {
+            if (x[1].dateDelivered) {
+              const date = new Date(x[1].dateDelivered)
+              if (date >= firstDay && date <= lastDay) {
+                if (!(x[1].key in products))
+                  products[x[1].key] = {
+                    amount: 0,
+                  }
+                products[x[1].key].amount += x[1].amount
+              }
+            }
+          }
+        })
+    })
+    let productArray = []
+    prodSnap.forEach((snap) => {
+      if (!(snap.key in products)) products[snap.key] = { title: '', amount: 0 }
+      products[snap.key].id = snap.key
+      products[snap.key].title = snap.val().title
+      productArray.push(products[snap.key])
+    })
+    productArray.sort((a, b) => b.amount - a.amount)
+    res.send({
+      products: productArray,
+      firstDate: firstDay.toString(),
+      lastDate: lastDay.toString(),
+    })
+  } catch (e) {
+    res.status(500).send({ message: e.toString() })
+  }
+})
 
 server.listen(port, () => {
   console.log('app listening on port: ', port)
