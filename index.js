@@ -8,6 +8,7 @@ const server = require('http').createServer(app)
 const io = require('socket.io')(server)
 const bodyParser = require('body-parser')
 const {
+  setProductsAmountTransact,
   getMonthsInYear,
   getWeeksinMonths,
   encryptJSON,
@@ -1673,6 +1674,7 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
     copyDate.setSeconds(59)
     const firstDay = date
     const dateToday = copyDate
+    const prodSnap = await data.ref('products').once('value')
     const snapshot = await data
       .ref('transaction')
       .orderByChild('pstatus')
@@ -1685,13 +1687,13 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
       .once('value')
 
     const obj = {
-      M: { index: 0, data: [] },
-      T: { index: 1, data: [] },
-      W: { index: 2, data: [] },
-      TH: { index: 3, data: [] },
-      F: { index: 4, data: [] },
-      SA: { index: 5, data: [] },
-      S: { index: 6, data: [] },
+      M: { index: 0, data: [], products: {} },
+      T: { index: 1, data: [], products: {} },
+      W: { index: 2, data: [], products: {} },
+      TH: { index: 3, data: [], products: {} },
+      F: { index: 4, data: [], products: {} },
+      SA: { index: 5, data: [], products: {} },
+      S: { index: 6, data: [], products: {} },
     }
     snapshot.forEach((snap) => {
       if (snap.val().dateDelivered) {
@@ -1699,24 +1701,59 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
         if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
           if (dateTransaction.getDay() === 0) {
             obj.S.data.push(snap.val().totalprice)
+            obj.S.products = setProductsAmountTransact(
+              obj.S.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 1) {
             obj.M.data.push(snap.val().totalprice)
+            obj.M.products = setProductsAmountTransact(
+              obj.M.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 2) {
             obj.T.data.push(snap.val().totalprice)
+            obj.T.products = setProductsAmountTransact(
+              obj.T.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 3) {
             obj.W.data.push(snap.val().totalprice)
+            obj.W.products = setProductsAmountTransact(
+              obj.W.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 4) {
             obj.TH.data.push(snap.val().totalprice)
+            obj.TH.products = setProductsAmountTransact(
+              obj.TH.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 5) {
             obj.F.data.push(snap.val().totalprice)
+            obj.F.products = setProductsAmountTransact(
+              obj.F.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 6) {
             obj.SA.data.push(snap.val().totalprice)
+            obj.SA.products = setProductsAmountTransact(
+              obj.SA.products,
+              snap.val().items,
+              prodSnap
+            )
           }
         }
       }
@@ -1727,24 +1764,59 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
         if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
           if (dateTransaction.getDay() === 0) {
             obj.S.data.push(snap.val().totalprice)
+            obj.S.products = setProductsAmountTransact(
+              obj.S.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 1) {
             obj.M.data.push(snap.val().totalprice)
+            obj.M.products = setProductsAmountTransact(
+              obj.M.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 2) {
             obj.T.data.push(snap.val().totalprice)
+            obj.T.products = setProductsAmountTransact(
+              obj.T.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 3) {
             obj.W.data.push(snap.val().totalprice)
+            obj.W.products = setProductsAmountTransact(
+              obj.W.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 4) {
             obj.TH.data.push(snap.val().totalprice)
+            obj.TH.products = setProductsAmountTransact(
+              obj.TH.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 5) {
             obj.F.data.push(snap.val().totalprice)
+            obj.F.products = setProductsAmountTransact(
+              obj.F.products,
+              snap.val().items,
+              prodSnap
+            )
           }
           if (dateTransaction.getDay() === 6) {
             obj.SA.data.push(snap.val().totalprice)
+            obj.SA.products = setProductsAmountTransact(
+              obj.SA.products,
+              snap.val().items,
+              prodSnap
+            )
           }
         }
       }
@@ -1755,7 +1827,11 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
       let total = 0
       for (let value of obj[x].data) total += value
       if (total > highest) highest = total
-      arr.data[obj[x].index] = { day: x, total: total }
+      arr.data[obj[x].index] = {
+        day: x,
+        total: total,
+        products: Object.keys(obj[x].products).map((v) => obj[x].products[v]),
+      }
       arr.overall += total
     }
     for (let x in arr.data) {
@@ -1780,6 +1856,7 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
     date.setMinutes(0)
     date.setSeconds(0)
     const obj = getWeeksinMonths(date.toString())
+    const prodSnap = await data.ref('products').once('value')
     const snapshot = await data
       .ref('transaction')
       .orderByChild('pstatus')
@@ -1800,6 +1877,11 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
             dateTransaction <= obj[value].sunday
           ) {
             obj[value].data.push(snap.val().totalprice)
+            obj[value].products = setProductsAmountTransact(
+              obj[value].products,
+              snap.val().items,
+              prodSnap
+            )
             break
           }
         }
@@ -1814,6 +1896,11 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
             dateTransaction <= obj[value].sunday
           ) {
             obj[value].data.push(snap.val().totalprice)
+            obj[value].products = setProductsAmountTransact(
+              obj[value].products,
+              snap.val().items,
+              prodSnap
+            )
             break
           }
         }
@@ -1825,7 +1912,11 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
       let total = 0
       for (let value of obj[x].data) total += value
       if (total > highest) highest = total
-      arr.data[x] = { day: 'Week ' + (Number(x) + 1), total: total }
+      arr.data[x] = {
+        day: 'Week ' + (Number(x) + 1),
+        total: total,
+        products: Object.keys(obj[x].products).map((v) => obj[x].products[v]),
+      }
       arr.overall += total
     }
     for (let x in arr.data) {
@@ -1855,6 +1946,7 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
     ]
     const year = Number(req.query.year)
     let obj = getMonthsInYear(year)
+    const prodSnap = await data.ref('products').once('value')
     const snapshot = await data
       .ref('transaction')
       .orderByChild('pstatus')
@@ -1875,6 +1967,11 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
             dateTransaction <= obj[value].last
           ) {
             obj[value].data.push(snap.val().totalprice)
+            obj[value].products = setProductsAmountTransact(
+              obj[value].products,
+              snap.val().items,
+              prodSnap
+            )
             break
           }
         }
@@ -1889,6 +1986,11 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
             dateTransaction <= obj[value].last
           ) {
             obj[value].data.push(snap.val().totalprice)
+            obj[value].products = setProductsAmountTransact(
+              obj[value].products,
+              snap.val().items,
+              prodSnap
+            )
             break
           }
         }
@@ -1900,7 +2002,11 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
       let total = 0
       for (let value of obj[x].data) total += value
       if (total > highest) highest = total
-      arr.data[x] = { day: month[Number(x)], total: total }
+      arr.data[x] = {
+        day: month[Number(x)],
+        total: total,
+        products: Object.keys(obj[x].products).map((v) => obj[x].products[v]),
+      }
       arr.overall += total
     }
     for (let x in arr.data) {

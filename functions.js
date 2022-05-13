@@ -197,6 +197,7 @@ const getWeeksinMonths = (date) => {
       monday: new Date(firstWeek.toString()),
       sunday: new Date(endDayOfWeek.toString()),
       data: [],
+      products: {},
     }
     firstWeek.setDate(endDayOfWeek.getDate() + 1)
     firstWeek.setHours(0)
@@ -229,6 +230,7 @@ const getMonthsInYear = (year) => {
       first: new Date(firstDay.toString()),
       last: new Date(endDay.toString()),
       data: [],
+      products: {},
     }
     firstDay.setMonth(firstDay.getMonth() + 1)
     firstDay.setDate(1)
@@ -240,7 +242,17 @@ const getMonthsInYear = (year) => {
 
   return dates
 }
+
+const setProductsAmountTransact = (obj, arr, prod) => {
+  arr.forEach((data) => {
+    if (!(data[1].key in obj) && data[1].key in prod.val())
+      obj[data[1].key] = { title: prod.val()[data[1].key].title, amount: 0 }
+    obj[data[1].key].amount += data[1].amount
+  })
+  return obj
+}
 module.exports = {
+  setProductsAmountTransact,
   getWeeksinMonths,
   getMonthsInYear,
   generateCode,
