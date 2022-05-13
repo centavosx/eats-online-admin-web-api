@@ -729,25 +729,7 @@ app.put('/api/admin/v1/updateaccounthistory', async (req, res) => {
                   )
               }
             })
-            if (v2 === 'Completed') {
-              let sn = await data
-                .ref('accounts')
-                .child(set.userid)
-                .once('value')
-              data
-                .ref('accounts')
-                .child(set.userid)
-                .update({
-                  totalspent: Number(
-                    sn.val().totalspent - Number(set.totalprice)
-                  ),
-                })
-                .then(() => {
-                  res.send(true)
-                })
-            } else {
-              res.send(true)
-            }
+            res.send(true)
           } else {
             if (v2 === 'Completed') {
               set.items.forEach(async (d) => {
@@ -780,42 +762,7 @@ app.put('/api/admin/v1/updateaccounthistory', async (req, res) => {
                 }
               })
             }
-
-            if (v2 === 'Cancelled' && set.status === 'Completed') {
-              let sn = await data
-                .ref('accounts')
-                .child(set.userid)
-                .once('value')
-              data
-                .ref('accounts')
-                .child(set.userid)
-                .update({
-                  totalspent: Number(
-                    sn.val().totalspent + Number(set.totalprice)
-                  ),
-                })
-                .then(() => {
-                  res.send(true)
-                })
-            } else if (v2 === 'Completed') {
-              let sn = await data
-                .ref('accounts')
-                .child(set.userid)
-                .once('value')
-              data
-                .ref('accounts')
-                .child(set.userid)
-                .update({
-                  totalspent: Number(
-                    sn.val().totalspent - Number(set.totalprice)
-                  ),
-                })
-                .then(() => {
-                  res.send(true)
-                })
-            } else {
-              res.send(true)
-            }
+            res.send(true)
           }
         }
       })
@@ -857,15 +804,11 @@ app.post('/api/admin/v1/search', async (req, res) => {
 app.put('/api/admin/v1/updatetransactstatus', async (req, res) => {
   try {
     let hid = req.body.hid
-    let idnum = req.body.idnum
     await data
       .ref('transaction')
       .child(hid)
       .update({ status: 'Completed', dateDelivered: new Date().toString() })
-    let snapshot = await data.ref('accounts').child(idnum).once('value')
-    let x = snapshot.val()
     let snaps = await data.ref('transaction').child(hid).once('value')
-    let y = snaps.val().totalprice
     for (let items of snaps.val().items) {
       let snaps2 = await data.ref('products').child(items[1].key).once('value')
       await data
@@ -873,15 +816,7 @@ app.put('/api/admin/v1/updatetransactstatus', async (req, res) => {
         .child(items[1].key)
         .update({ totalsold: snaps2.val().totalsold + items[1].amount })
     }
-    data
-      .ref('accounts')
-      .child(idnum)
-      .update({
-        totalspent: parseFloat((Number(x.totalspent) + Number(y)).toFixed(2)),
-      })
-      .then((d) => {
-        res.send(true)
-      })
+    res.send(true)
   } catch {
     res
       .status(500)
@@ -893,6 +828,25 @@ app.put('/api/admin/v1/updatetransactstatus', async (req, res) => {
 app.put('/api/admin/v1/setpstatus', async (req, res) => {
   try {
     const datas = req.body
+    const transac = await data.ref(datas.what).child(datas.id).once('value')
+    if (transac.val().pstatus === datas.paid) res.send(false)
+    let snapshot = await data
+      .ref('accounts')
+      .child(transac.val().userid)
+      .once('value')
+    let totalspent = snapshot.val().totalspent
+    let totalprice = transac.val().totalprice
+    data
+      .ref('accounts')
+      .child(transac.val().userid)
+      .update({
+        totalspent:
+          datas.paid === 'Paid'
+            ? parseFloat((Number(totalspent) + Number(totalprice)).toFixed(2))
+            : parseFloat(
+                (Number(x.totalspent) - Number(totalprice)).toFixed(2)
+              ),
+      })
     await data.ref(datas.what).child(datas.id).update({ pstatus: datas.paid })
     res.send(true)
   } catch (e) {
@@ -955,21 +909,10 @@ app.put('/api/admin/v1/updateaccountadv', async (req, res) => {
 app.patch('/api/admin/v1/updateStatusCompleted', async (req, res) => {
   try {
     let hid = req.body.hid
-    let idnum = req.body.idnum
     await data
       .ref('reservation')
       .child(hid)
       .update({ status: 'Completed', dateDelivered: new Date().toString() })
-    let snapshot = await data.ref('accounts').child(idnum).once('value')
-    let x = snapshot.val()
-    let snaps = await data.ref('reservation').child(hid).once('value')
-    let y = snaps.val().totalprice
-    await data
-      .ref('accounts')
-      .child(idnum)
-      .update({
-        totalspent: parseFloat((Number(x.totalspent) + Number(y)).toFixed(2)),
-      })
     res.send(true)
   } catch {
     res
@@ -1014,21 +957,6 @@ app.patch('/api/admin/v1/updateAdvanceItem', async (req, res) => {
         .ref('products')
         .child(snapshot.val().key)
         .update({ totalsold: snap.val().totalsold + snapshot.val().amount })
-      let snapshot2 = await data.ref('reservation').child(id).once('value')
-      let sn = await data
-        .ref('accounts')
-        .child(snapshot2.val().userid)
-        .once('value')
-      await data
-        .ref('accounts')
-        .child(snapshot2.val().userid)
-        .update({
-          totalspent:
-            sn.val().totalspent +
-            Number(
-              Number(snapshot.val().amount * snapshot.val().price).toFixed(2)
-            ),
-        })
     } else {
       if (v2 === 'Completed') {
         let snapshot = await data
@@ -1046,21 +974,6 @@ app.patch('/api/admin/v1/updateAdvanceItem', async (req, res) => {
           .ref('products')
           .child(snapshot.val().key)
           .update({ totalsold: snap.val().totalsold - snapshot.val().amount })
-        let snapshot2 = await data.ref('reservation').child(id).once('value')
-        let sn = await data
-          .ref('accounts')
-          .child(snapshot2.val().userid)
-          .once('value')
-        await data
-          .ref('accounts')
-          .child(snapshot2.val().userid)
-          .update({
-            totalspent:
-              sn.val().totalspent -
-              Number(
-                Number(snapshot.val().amount * snapshot.val().price).toFixed(2)
-              ),
-          })
       }
     }
     res.send(true)
