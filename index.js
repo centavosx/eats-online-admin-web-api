@@ -843,9 +843,7 @@ app.put('/api/admin/v1/setpstatus', async (req, res) => {
         totalspent:
           datas.paid === 'Paid'
             ? parseFloat((Number(totalspent) + Number(totalprice)).toFixed(2))
-            : parseFloat(
-                (Number(x.totalspent) - Number(totalprice)).toFixed(2)
-              ),
+            : parseFloat((Number(totalspent) - Number(totalprice)).toFixed(2)),
       })
     await data
       .ref(datas.what)
