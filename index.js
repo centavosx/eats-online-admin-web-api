@@ -847,7 +847,13 @@ app.put('/api/admin/v1/setpstatus', async (req, res) => {
                 (Number(x.totalspent) - Number(totalprice)).toFixed(2)
               ),
       })
-    await data.ref(datas.what).child(datas.id).update({ pstatus: datas.paid })
+    await data
+      .ref(datas.what)
+      .child(datas.id)
+      .update({
+        pstatus: datas.paid,
+        datePaid: datas.paid === 'Paid' ? new Date().toString() : null,
+      })
     res.send(true)
   } catch (e) {
     res.status(500).send({ message: 'error' })
@@ -1610,7 +1616,7 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
     }
     snapshot.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
           if (dateTransaction.getDay() === 0) {
             obj.S.data.push(snap.val().totalprice)
@@ -1673,7 +1679,7 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
     })
     snapshot2.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
           if (dateTransaction.getDay() === 0) {
             obj.S.data.push(snap.val().totalprice)
@@ -1783,7 +1789,7 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
 
     snapshot.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         for (let value in obj) {
           if (
             obj[value].monday <= dateTransaction &&
@@ -1802,7 +1808,7 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
     })
     snapshot2.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         for (let value in obj) {
           if (
             obj[value].monday <= dateTransaction &&
@@ -1873,7 +1879,7 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
 
     snapshot.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         for (let value in obj) {
           if (
             obj[value].first <= dateTransaction &&
@@ -1892,7 +1898,7 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
     })
     snapshot2.forEach((snap) => {
       if (snap.val().dateDelivered) {
-        const dateTransaction = new Date(snap.val().dateDelivered)
+        const dateTransaction = new Date(snap.val().datePaid)
         for (let value in obj) {
           if (
             obj[value].first <= dateTransaction &&
