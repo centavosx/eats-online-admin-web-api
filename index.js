@@ -852,8 +852,10 @@ app.put('/api/admin/v1/setpstatus', async (req, res) => {
       .child(datas.id)
       .update({
         pstatus: datas.paid,
-        datePaid: datas.paid === 'Paid' ? new Date().toString() : null,
+        datePaid: datas.paid === 'Paid' ? new Date().toString() : undefined,
       })
+    if (datas.paid !== 'Paid')
+      await data.ref(datas.what).child(datas.id).child('datePaid').remove()
     res.send(true)
   } catch (e) {
     res.status(500).send({ message: 'error' })
