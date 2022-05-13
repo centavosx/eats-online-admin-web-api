@@ -1675,8 +1675,13 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
     const dateToday = copyDate
     const snapshot = await data
       .ref('transaction')
-      .orderByChild('status')
-      .equalTo('Completed')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
+      .once('value')
+    const snapshot2 = await data
+      .ref('reservation')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
       .once('value')
 
     const obj = {
@@ -1689,6 +1694,34 @@ app.get('/api/admin/v1/weeklyTransaction', async (req, res) => {
       S: { index: 6, data: [] },
     }
     snapshot.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
+          if (dateTransaction.getDay() === 0) {
+            obj.S.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 1) {
+            obj.M.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 2) {
+            obj.T.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 3) {
+            obj.W.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 4) {
+            obj.TH.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 5) {
+            obj.F.data.push(snap.val().totalprice)
+          }
+          if (dateTransaction.getDay() === 6) {
+            obj.SA.data.push(snap.val().totalprice)
+          }
+        }
+      }
+    })
+    snapshot2.forEach((snap) => {
       if (snap.val().dateDelivered) {
         const dateTransaction = new Date(snap.val().dateDelivered)
         if (dateTransaction >= firstDay && dateTransaction <= dateToday) {
@@ -1749,8 +1782,13 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
     const obj = getWeeksinMonths(date.toString())
     const snapshot = await data
       .ref('transaction')
-      .orderByChild('status')
-      .equalTo('Completed')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
+      .once('value')
+    const snapshot2 = await data
+      .ref('reservation')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
       .once('value')
 
     snapshot.forEach((snap) => {
@@ -1767,7 +1805,20 @@ app.get('/api/admin/v1/monthlyTransaction', async (req, res) => {
         }
       }
     })
-
+    snapshot2.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        for (let value in obj) {
+          if (
+            obj[value].monday <= dateTransaction &&
+            dateTransaction <= obj[value].sunday
+          ) {
+            obj[value].data.push(snap.val().totalprice)
+            break
+          }
+        }
+      }
+    })
     let arr = { data: {}, overall: 0 }
     let highest = 0
     for (let x in obj) {
@@ -1806,11 +1857,30 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
     let obj = getMonthsInYear(year)
     const snapshot = await data
       .ref('transaction')
-      .orderByChild('status')
-      .equalTo('Completed')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
+      .once('value')
+    const snapshot2 = await data
+      .ref('reservation')
+      .orderByChild('pstatus')
+      .equalTo('Paid')
       .once('value')
 
     snapshot.forEach((snap) => {
+      if (snap.val().dateDelivered) {
+        const dateTransaction = new Date(snap.val().dateDelivered)
+        for (let value in obj) {
+          if (
+            obj[value].first <= dateTransaction &&
+            dateTransaction <= obj[value].last
+          ) {
+            obj[value].data.push(snap.val().totalprice)
+            break
+          }
+        }
+      }
+    })
+    snapshot2.forEach((snap) => {
       if (snap.val().dateDelivered) {
         const dateTransaction = new Date(snap.val().dateDelivered)
         for (let value in obj) {
@@ -1841,6 +1911,12 @@ app.get('/api/admin/v1/yearlyTransaction', async (req, res) => {
     res.status(500).send({ message: e.toString() })
   }
 })
+
+// app.get('/api/admin/v1/ordersForTheMonth', async (req, res) => {
+//   const prodSnap = await data.ref('products').once('value')
+//   const transactSnap = await data.ref('transaction').once('value')
+//   const reservationSnap = await data.ref('reservation').once('value')
+// })
 
 server.listen(port, () => {
   console.log('app listening on port: ', port)
