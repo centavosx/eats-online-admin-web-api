@@ -56,6 +56,10 @@ app.use(function (req, res, next) {
 
 const chat = {}
 data.ref('accounts').on('value', (snapshot) => {
+  let newR = []
+  let today = new Date()
+  let lastsixday = new Date(today.toString())
+  lastsixday.setDate(lastsixday.getDate() - 3)
   let x = []
   let allUser = []
   let count = 0
@@ -71,14 +75,18 @@ data.ref('accounts').on('value', (snapshot) => {
       d.val().phoneNumber !== 'DELETED USER' &&
       d.val().verified !== 'DELETED USER'
     ) {
+      let v = new Date(d.val().dateCreated)
+      if (v >= lastsixday && v <= today) newR.push(d.val())
       x.push(d.val())
     } else {
       count++
     }
     allUser.push([d.key, d.val()])
   })
+  newR.reverse()
   allUser.reverse()
   x.sort((a, b) => b.totalspent - a.totalspent)
+  io.emit('newRegistered', newR)
   io.emit('users', allUser)
   io.emit('registered', registered)
   io.emit('topbuyers', x)
