@@ -2028,6 +2028,33 @@ app.get('/api/admin/v1/getFastMovingProducts', async (req, res) => {
   }
 })
 
+app.get('/api/admin/v1/getNewRegisteredAccounts', async (req, res) => {
+  try {
+    const snapshot = await data.ref('accounts').once('value')
+    let x = []
+    let today = new Date()
+    let lastsixday = new Date(today.toString())
+    lastsixday.setDate(lastsixday.getDate() - 3)
+    snapshot.forEach((d) => {
+      let v = new Date(d.val().dateCreated)
+      if (
+        v >= lastsixday &&
+        v <= today &&
+        d.val().name !== 'DELETED USER' &&
+        d.val().email !== 'DELETED USER' &&
+        d.val().password !== 'DELETED USER' &&
+        d.val().phoneNumber !== 'DELETED USER' &&
+        d.val().verified !== 'DELETED USER'
+      )
+        x.push(d.val())
+    })
+    x.reverse()
+    res.send({ newRegistered: x })
+  } catch (e) {
+    res.status(500).send({ message: e.toString() })
+  }
+})
+
 server.listen(port, () => {
   console.log('app listening on port: ', port)
 })
