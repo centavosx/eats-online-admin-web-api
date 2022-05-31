@@ -2062,7 +2062,43 @@ app.get('/api/admin/v1/getNewRegisteredAccounts', async (req, res) => {
     res.status(500).send({ message: e.toString() })
   }
 })
+app.get('/api/admin/v1/getCancelRequest', async (req, res) => {
+  try {
+    const snap = await data
+      .ref(req.query.what)
+      .orderByChild('request')
+      .equalTo(true)
+      .once('value')
+    let x = []
+    snap.forEach((data) => {
+      x.push({ id: data.key, val: data.val() })
+    })
+    x.reverse()
+    res.send(x)
+  } catch (e) {
+    res.status(500).send({ message: e.toString() })
+  }
+})
 
+app.patch('/api/admin/v1/getCancelRequest', async (req, res) => {
+  try {
+    const accepted = req.body.accepted
+    const what = req.body.what
+    const id = req.body.id
+    await data
+      .ref(what)
+      .child(id)
+      .update(
+        accepted ? { requested: null, status: 'Cancelled' } : { request: null }
+      )
+    res.send({
+      updated: true,
+      message: 'Done',
+    })
+  } catch (e) {
+    res.status(500).send({ message: e.toString() })
+  }
+})
 server.listen(port, () => {
   console.log('app listening on port: ', port)
 })
