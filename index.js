@@ -2089,7 +2089,7 @@ app.patch('/api/admin/v1/getCancelRequest', async (req, res) => {
       .ref(what)
       .child(id)
       .update(
-        accepted ? { requested: null, status: 'Cancelled' } : { request: null }
+        accepted ? { requested: null, status: 'Cancelled' } : { request: false }
       )
     res.send({
       updated: true,
@@ -2098,6 +2098,28 @@ app.patch('/api/admin/v1/getCancelRequest', async (req, res) => {
   } catch (e) {
     res.status(500).send({ message: e.toString() })
   }
+})
+app.patch('/api/admin/v1/approveRefund', async (req, res) => {
+  const accepted = req.body.accepted
+  const what = req.body.what
+  const id = req.body.id
+  const uid = req.body.uid
+  const totalprice = req.body.total
+  const snapshot = await data.ref('accounts').child(uid).once('value')
+  await data
+    .ref(what)
+    .child(id)
+    .update(
+      accepted
+        ? { requested: null, status: 'Cancelled', pstatus: 'Not Paid' }
+        : { request: false }
+    )
+  if (accepted)
+    await data
+      .ref('accounts')
+      .child(uid)
+      .update({ totalspent: snapshot.val().totalspent - totalprice })
+  res.send({ updated: true })
 })
 server.listen(port, () => {
   console.log('app listening on port: ', port)
