@@ -2088,45 +2088,28 @@ app.get('/api/admin/v1/getCancelRequest', async (req, res) => {
   }
 })
 
-app.patch('/api/admin/v1/getCancelRequest', async (req, res) => {
-  try {
-    const accepted = req.body.accepted
-    const what = req.body.what
-    const id = req.body.id
-    await data
-      .ref(what)
-      .child(id)
-      .update(
-        accepted ? { requested: null, status: 'Cancelled' } : { request: false }
-      )
-    res.send({
-      updated: true,
-      message: 'Done',
-    })
-  } catch (e) {
-    res.status(500).send({ message: e.toString() })
-  }
-})
-app.patch('/api/admin/v1/approveRefund', async (req, res) => {
+app.patch('/api/admin/v1/approveRequest', async (req, res) => {
   const accepted = req.body.accepted
   const what = req.body.what
   const id = req.body.id
   const uid = req.body.uid
   const totalprice = req.body.total
+  const paid = req.body.paid
   const snapshot = await data.ref('accounts').child(uid).once('value')
   await data
     .ref(what)
     .child(id)
     .update(
       accepted
-        ? { requested: null, status: 'Cancelled', pstatus: 'Not Paid' }
+        ? { request: null, status: 'Cancelled', pstatus: 'Not Paid' }
         : { request: false }
     )
   if (accepted)
-    await data
-      .ref('accounts')
-      .child(uid)
-      .update({ totalspent: snapshot.val().totalspent - totalprice })
+    if (paid)
+      await data
+        .ref('accounts')
+        .child(uid)
+        .update({ totalspent: snapshot.val().totalspent - totalprice })
   res.send({ updated: true })
 })
 server.listen(port, () => {
