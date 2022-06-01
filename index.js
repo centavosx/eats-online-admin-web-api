@@ -103,20 +103,28 @@ data.ref('contactus').on('value', (snapshot) => {
 data.ref('reservation').on('value', (snapshot) => {
   io.emit('numberofadvance', snapshot.numChildren())
   let history = []
+  let requests = []
   snapshot.forEach((snap) => {
+    if (snap.val().request) requests.push({ id: snap.key, val: snap.val() })
     history.push([snap.key, snap.val()])
   })
   history.reverse()
   io.emit('reservation', history)
+  requests.reverse()
+  io.emit('advancerequest', requests)
 })
 data.ref('transaction').on('value', (snapshot) => {
   io.emit('numberoftransaction', snapshot.numChildren())
   let history = []
+  let requests = []
   snapshot.forEach((snap) => {
+    if (snap.val().request) requests.push({ id: snap.key, val: snap.val() })
     history.push([snap.key, snap.val()])
   })
   history.reverse()
   io.emit('transaction', history)
+  requests.reverse()
+  io.emit('orderrequest', requests)
 })
 data.ref('chat').on('value', async (snapshot) => {
   let snapshot2 = await data.ref('accounts').once('value')
